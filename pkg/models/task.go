@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-type TaskType string
-
 const (
 	TASK_TYPE_SHELL   = TaskType("shell")
 	TASK_TYPE_GO_FUNC = TaskType("go-func")
 )
+
+type TaskType string
 
 type Task struct {
 	Id           string          `json:"id" gorm:"column:id;primary_key;not null;type:varchar(255)"`
@@ -20,6 +20,8 @@ type Task struct {
 	TaskType     TaskType        `json:"taskType"`
 	ShellJobInfo *ShellTaskInfo  `json:"shellInfo"`
 	GoFuncInfo   *GoTaskFuncInfo `json:"goFuncInfo"`
+	Result       string          `json:"result"`
+	ErrMsg       string          `json:"errMsg"`
 }
 
 type ShellTaskInfo struct {

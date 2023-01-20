@@ -7,6 +7,7 @@ require (
 	github.com/google/wire v0.5.0
 	github.com/magicLian/logx v1.0.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/streadway/amqp v1.0.0
 	golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7
 	gopkg.in/ini.v1 v1.67.0
 	gorm.io/driver/postgres v1.4.6
