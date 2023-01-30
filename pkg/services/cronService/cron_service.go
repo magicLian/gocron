@@ -96,8 +96,8 @@ func (c *CronService) initShellCronJob(task *models.TaskDto) error {
 		}
 		task.Result = string(ret)
 
-		if err := c.taskSvc.UpdateTaskResult(task.Id, task.Result, task.ErrMsg);err != nil {
-			c.log.
+		if err := c.taskSvc.UpdateTaskResult(task.Id, task.Result, task.ErrMsg); err != nil {
+			c.log.Error(err.Error())
 		}
 	})
 	if err != nil {

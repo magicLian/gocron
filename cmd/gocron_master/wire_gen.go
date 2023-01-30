@@ -14,6 +14,7 @@ import (
 	"github.com/magicLian/gocron/pkg/services/cronService"
 	"github.com/magicLian/gocron/pkg/services/nodeManager"
 	"github.com/magicLian/gocron/pkg/services/sqlstore"
+	"github.com/magicLian/gocron/pkg/services/taskService"
 	"github.com/magicLian/gocron/pkg/setting"
 )
 
@@ -26,7 +27,12 @@ func InitGoCronMasterWire(cmd *setting.CommandLineArgs) (*GoCronMasterServer, er
 	}
 	middleWare := middleware.ProvideMiddleWare(cfg)
 	httpServer := api.ProvideHttpServer(cfg, middleWare)
-	cronService := cronservice.ProvideCronService(cfg)
+	sqlStoreInterface, err := sqlstore.ProvideSqlStore(cfg)
+	if err != nil {
+		return nil, err
+	}
+	taskManager := taskservice.ProvideTaskService(cfg, sqlStoreInterface)
+	cronService := cronservice.ProvideCronService(cfg, taskManager)
 	backgroundServiceRegistry := backgroundSvc.ProviceBackgroupServiceRegistry(httpServer, cronService)
 	goCronMasterServer := NewGoCronMasterServer(cfg, backgroundServiceRegistry)
 	return goCronMasterServer, nil
@@ -35,5 +41,5 @@ func InitGoCronMasterWire(cmd *setting.CommandLineArgs) (*GoCronMasterServer, er
 // wire.go:
 
 var wireSet = wire.NewSet(
-	NewGoCronMasterServer, backgroundSvc.ProviceBackgroupServiceRegistry, setting.ProvideSettingCfg, sqlstore.ProvideSqlStore, api.ProvideHttpServer, middleware.ProvideMiddleWare, nodemanager.ProvideNodeService, cronservice.ProvideCronService,
+	NewGoCronMasterServer, backgroundSvc.ProviceBackgroupServiceRegistry, setting.ProvideSettingCfg, sqlstore.ProvideSqlStore, api.ProvideHttpServer, middleware.ProvideMiddleWare, nodemanager.ProvideNodeService, cronservice.ProvideCronService, taskservice.ProvideTaskService,
 )

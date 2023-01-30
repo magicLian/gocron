@@ -13,7 +13,7 @@ type TaskService struct {
 	sqlstore sqlstore.SqlStoreInterface
 }
 
-func ProvideNodeService(cfg *setting.Cfg, sqlstore sqlstore.SqlStoreInterface) TaskManager {
+func ProvideTaskService(cfg *setting.Cfg, sqlstore sqlstore.SqlStoreInterface) TaskManager {
 	return &TaskService{
 		cfg:      cfg,
 		sqlstore: sqlstore,
@@ -29,4 +29,9 @@ func (t *TaskService) GetTaskById(id string) (*models.TaskDto, error) {
 // GetNodes implements NodeManager
 func (t *TaskService) GetTasks() ([]*models.TaskDto, error) {
 	return t.sqlstore.GetTasks()
+}
+
+// UpdateTaskResult implements TaskManager
+func (*TaskService) UpdateTaskResult(id string, result string, errMsg string) error {
+	panic("unimplemented")
 }
