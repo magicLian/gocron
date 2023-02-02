@@ -90,8 +90,20 @@ func (mq *MasterMessageService) HandleSendToWorkers(ctx context.Context) {
 				continue
 			}
 
-			mq.log.Debugf("Send worker jobs message: [%s]", string(messageData))
-			if err = mq.Send(ctx, string(messageData), ""); err != nil {
+			sendMsg := &models.SendMsg{
+				Type:    models.MSG_TYPE_TASK_MSG,
+				Content: string(messageData),
+			}
+
+			msg, err := json.Marshal(sendMsg)
+			if err != nil {
+				mq.log.Error(err.Error())
+				continue
+			}
+
+			mq.log.Debugf("Send worker jobs message: [%s]", string(msg))
+
+			if err = mq.Send(ctx, string(msg), ""); err != nil {
 				mq.log.Error(err.Error())
 				mq.errChan <- err
 			}

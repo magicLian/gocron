@@ -94,7 +94,7 @@ func (wq *WorkerMessageService) Receive(ctx context.Context, queueName string) e
 		}
 
 		switch commonMsg.Type {
-		case models.MSG_TYPE_REGISTER_MSG:
+		case models.MSG_TYPE_TASK_MSG:
 			taskMsg := &models.TaskDto{}
 			if err := json.Unmarshal([]byte(commonMsg.Content), taskMsg); err != nil {
 				wq.log.Debugf("Unmarshal receive msg to task info failed, [%s]", err.Error())
