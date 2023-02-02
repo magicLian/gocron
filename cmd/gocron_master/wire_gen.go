@@ -12,6 +12,7 @@ import (
 	"github.com/magicLian/gocron/pkg/api"
 	"github.com/magicLian/gocron/pkg/api/middleware"
 	"github.com/magicLian/gocron/pkg/services/cronService"
+	"github.com/magicLian/gocron/pkg/services/messageQueue"
 	"github.com/magicLian/gocron/pkg/services/nodeManager"
 	"github.com/magicLian/gocron/pkg/services/sqlstore"
 	"github.com/magicLian/gocron/pkg/services/taskService"
@@ -41,5 +42,5 @@ func InitGoCronMasterWire(cmd *setting.CommandLineArgs) (*GoCronMasterServer, er
 // wire.go:
 
 var wireSet = wire.NewSet(
-	NewGoCronMasterServer, backgroundSvc.ProviceBackgroupServiceRegistry, setting.ProvideSettingCfg, sqlstore.ProvideSqlStore, api.ProvideHttpServer, middleware.ProvideMiddleWare, nodemanager.ProvideNodeService, cronservice.ProvideCronService, taskservice.ProvideTaskService,
+	NewGoCronMasterServer, backgroundSvc.ProviceBackgroupServiceRegistry, setting.ProvideSettingCfg, sqlstore.ProvideSqlStore, api.ProvideHttpServer, middleware.ProvideMiddleWare, nodemanager.ProvideNodeService, cronservice.ProvideCronService, taskservice.ProvideTaskService, messagequeue.ProvideMasterMsgService,
 )

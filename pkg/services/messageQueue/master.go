@@ -19,28 +19,6 @@ type MasterMessageService struct {
 	receiveErrRelyChan      chan *models.ErrReplyMsg
 }
 
-func (mq *MasterMessageService) startMaster() {
-	mq.log.Info("Starting to connect rmq server...")
-	for {
-		if err := mq.connect(); err != nil {
-			mq.log.Errorf("rmq connect failed, [%s]", err.Error())
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-
-		go mq.KeepAlive(ctx)
-		go mq.Receive(ctx, mq.registerQueue)
-		go mq.Receive(ctx, mq.errReplyQueue)
-		go mq.HandleSendToWorkers(ctx)
-
-		<-mq.errChan
-		mq.Close()
-		cancel()
-	}
-}
-
 func ProvideMasterMsgService(cfg *setting.Cfg) (Messager, error) {
 	mmq := &MasterMessageService{
 		MessageService: MessageService{
@@ -62,6 +40,28 @@ func ProvideMasterMsgService(cfg *setting.Cfg) (Messager, error) {
 	go mmq.startMaster()
 
 	return mmq, nil
+}
+
+func (mq *MasterMessageService) startMaster() {
+	mq.log.Info("Starting to connect rmq server...")
+	for {
+		if err := mq.connect(); err != nil {
+			mq.log.Errorf("rmq connect failed, [%s]", err.Error())
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		go mq.KeepAlive(ctx)
+		go mq.Receive(ctx, mq.registerQueue)
+		go mq.Receive(ctx, mq.errReplyQueue)
+		go mq.HandleSendToWorkers(ctx)
+
+		<-mq.errChan
+		mq.Close()
+		cancel()
+	}
 }
 
 func (mq *MasterMessageService) HandleRegisterMsg(ctx context.Context) error {

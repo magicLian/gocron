@@ -19,27 +19,6 @@ type WorkerMessageService struct {
 	sendErrRelyChan       chan *models.ErrReplyMsg
 }
 
-func (wq *WorkerMessageService) startWorker() {
-	wq.log.Info("Starting to connect rmq server...")
-	for {
-		if err := wq.connect(); err != nil {
-			wq.log.Errorf("rmq connect failed, [%s]", err.Error())
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-
-		go wq.KeepAlive(ctx)
-		go wq.Receive(ctx, wq.workQueue)
-		go wq.HandleTasks(ctx)
-
-		<-wq.errChan
-		wq.Close()
-		cancel()
-	}
-}
-
 func ProvideWorkerMsgService(cfg *setting.Cfg) (Messager, error) {
 	wmq := &WorkerMessageService{
 		MessageService: MessageService{
@@ -61,6 +40,27 @@ func ProvideWorkerMsgService(cfg *setting.Cfg) (Messager, error) {
 	go wmq.startWorker()
 
 	return wmq, nil
+}
+
+func (wq *WorkerMessageService) startWorker() {
+	wq.log.Info("Starting to connect rmq server...")
+	for {
+		if err := wq.connect(); err != nil {
+			wq.log.Errorf("rmq connect failed, [%s]", err.Error())
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		go wq.KeepAlive(ctx)
+		go wq.Receive(ctx, wq.workQueue)
+		go wq.HandleTasks(ctx)
+
+		<-wq.errChan
+		wq.Close()
+		cancel()
+	}
 }
 
 func (wq *WorkerMessageService) SendRegisterMsg(ctx context.Context) error {
