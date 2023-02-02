@@ -4,7 +4,7 @@ import "context"
 
 type Messager interface {
 	KeepAlive(ctx context.Context)
-	Send(topic, content string) error
-	Receive(topic string) ([]byte, error)
+	Send(ctx context.Context, queueName, content string) error
+	Receive(ctx context.Context, queueName string) error
 	Close() error
 }
