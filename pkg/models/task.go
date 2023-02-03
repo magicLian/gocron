@@ -14,14 +14,17 @@ const (
 type TaskType string
 
 type Task struct {
-	Id           string          `json:"id" gorm:"column:id;primary_key;not null;type:varchar(255)"`
-	Name         string          `json:"name"`
-	Expr         string          `json:"expr"`
-	TaskType     TaskType        `json:"taskType"`
-	ShellJobInfo *ShellTaskInfo  `json:"shellInfo"`
-	GoFuncInfo   *GoTaskFuncInfo `json:"goFuncInfo"`
-	Result       string          `json:"result"`
-	ErrMsg       string          `json:"errMsg"`
+	Id               string          `json:"id" gorm:"column:id;primary_key;not null;type:varchar(255)"`
+	Name             string          `json:"name"`
+	Expr             string          `json:"expr"`
+	TaskType         TaskType        `json:"taskType"`
+	ShellJobInfo     *ShellTaskInfo  `json:"shellInfo"`
+	GoFuncInfo       *GoTaskFuncInfo `json:"goFuncInfo"`
+	SpecificWorkerId string          `json:"specificWorkerId"`
+	RetryTimes       int             `json:"retryTimes"`
+	RetriedTimes     int             `json:"retriedTimes"`
+	Result           string          `json:"result"`
+	ErrMsg           string          `json:"errMsg"`
 }
 
 type ShellTaskInfo struct {

@@ -27,8 +27,13 @@ func (n *NodeService) GetNodeById(id string) (*models.Node, error) {
 }
 
 // GetNodes implements NodeManager
-func (n *NodeService) GetNodes() ([]*models.Node, error) {
-	return n.sqlstore.GetNodes()
+func (n *NodeService) GetNodes(name, ip string) ([]*models.Node, error) {
+	return n.sqlstore.GetNodes(name, ip)
+}
+
+// ExistNode implements NodeManager
+func (n *NodeService) ExistNode(name, ip string) (bool, error) {
+	return n.sqlstore.ExistNode(name, ip)
 }
 
 // CreateNode implements NodeManager

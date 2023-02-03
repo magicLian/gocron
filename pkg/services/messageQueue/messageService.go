@@ -9,11 +9,11 @@ import (
 )
 
 type MessageService struct {
-	uri           string
-	exchangeName  string
-	registerQueue string
-	errReplyQueue string
-	workQueue     string
+	uri            string
+	exchangeName   string
+	registerQueue  string
+	taskReplyQueue string
+	taskQueue      string
 
 	log     logx.Logger
 	conn    *amqp.Connection
@@ -23,59 +23,6 @@ type MessageService struct {
 
 // connect connects channel and exchange and 3 kinds of queues.
 func (q *MessageService) connect() error {
-	cfg := amqp.Config{Properties: amqp.NewConnectionProperties()}
-	conn, err := amqp.DialConfig(q.uri, cfg)
-	if err != nil {
-		q.log.Errorf("connect to rmq failed, [%s]", err.Error())
-		return err
-	}
-	q.conn = conn
-
-	ch, err := conn.Channel()
-	if err != nil {
-		q.log.Errorf("rmq channel create failed, [%s]", err.Error())
-		return err
-	}
-	q.channel = ch
-
-	if err := ch.ExchangeDeclare(q.exchangeName, amqp.ExchangeDirect, true, false, false, false, nil); err != nil {
-		if err := ch.Close(); err != nil {
-			q.log.Debugf("close rmq channel raise error, [%s]", err.Error())
-			return err
-		}
-		return err
-	}
-
-	//register queue
-	rq, err := ch.QueueDeclare(q.registerQueue, false, false, false, false, nil)
-	if err != nil {
-		q.log.Errorf("declare register queue failed, [%s]", err.Error())
-	}
-
-	if err := ch.QueueBind(rq.Name, q.registerQueue, q.exchangeName, false, nil); err != nil {
-		return err
-	}
-
-	//work queue
-	wq, err := ch.QueueDeclare(q.workQueue, false, false, false, false, nil)
-	if err != nil {
-		q.log.Errorf("declare work queue failed, [%s]", err.Error())
-	}
-
-	if err := ch.QueueBind(wq.Name, q.workQueue, q.exchangeName, false, nil); err != nil {
-		return err
-	}
-
-	//err reply queue
-	erq, err := ch.QueueDeclare(q.errReplyQueue, false, false, false, false, nil)
-	if err != nil {
-		q.log.Errorf("declare err reply queue failed, [%s]", err.Error())
-	}
-
-	if err := ch.QueueBind(erq.Name, q.errReplyQueue, q.exchangeName, false, nil); err != nil {
-		return err
-	}
-
 	return nil
 }
 

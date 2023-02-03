@@ -7,7 +7,7 @@ import (
 
 type NodeSqlStore interface {
 	GetNodeById(id string) (*models.Node, error)
-	GetNodes() ([]*models.Node, error)
+	GetNodes(name, ip string) ([]*models.Node, error)
 	ExistNode(name, ip string) (bool, error)
 	CreateNode(node *models.CreateNode) error
 	UpdateNode(node *models.UpdateNode) error
@@ -27,9 +27,18 @@ func (s *SqlStore) GetNodeById(id string) (*models.Node, error) {
 	return node, nil
 }
 
-func (s *SqlStore) GetNodes() ([]*models.Node, error) {
+func (s *SqlStore) GetNodes(name, ip string) ([]*models.Node, error) {
 	nodes := make([]*models.Node, 0)
-	if err := s.db.Model(&models.Node{}).Find(&nodes).Error; err != nil {
+
+	db := s.db
+	if name != "" {
+		db = db.Where("name = ?", name)
+	}
+	if ip != "" {
+		db = db.Where("ip = ?", ip)
+	}
+
+	if err := db.Model(&models.Node{}).Find(&nodes).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}

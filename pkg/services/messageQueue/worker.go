@@ -3,6 +3,8 @@ package messagequeue
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/magicLian/gocron/pkg/models"
@@ -14,28 +16,49 @@ import (
 type WorkerMessageService struct {
 	MessageService
 
-	receiveWorkerJobsChan chan *models.TaskDto
-	sendRegisterInfoChan  chan *models.RegisterMsg
-	sendErrRelyChan       chan *models.ErrReplyMsg
+	cfg *setting.Cfg
+
+	registerTopic  string
+	tasksTopic     string
+	taskReplyTopic string
+
+	workerId   string
+	workerIP   string
+	workerName string
+
+	receiveWorkerTasksChan chan *models.TaskDto
+	sendTaskRelyChan       chan *models.TaskReplyMsg
 }
 
 func ProvideWorkerMsgService(cfg *setting.Cfg) (Messager, error) {
 	wmq := &WorkerMessageService{
+		cfg: cfg,
 		MessageService: MessageService{
-			uri:           utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "uri"), "amqp://root:123@127.0.0.1:5672/"),
-			exchangeName:  utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "exchange_name"), "gocron_exchange"),
-			registerQueue: utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "register_queue"), "register_q"),
-			errReplyQueue: utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "err_reply_queue"), "err_r_q"),
-			workQueue:     utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "work_queue"), "work_q"),
+			uri:            utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "uri"), "amqp://root:123@127.0.0.1:5672/"),
+			exchangeName:   utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "exchange_name"), "gocron_exchange"),
+			registerQueue:  utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "register_queue"), "register_q"),
+			taskReplyQueue: utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "task_reply_queue"), "task_r_q"),
+			taskQueue:      utils.SetDefaultString(utils.GetEnvOrIniValue(cfg.Raw, "rabbitmq", "work_queue"), "work_q"),
 
 			log:     logx.NewLogx("msg-service-worker", setting.LogxLevel),
 			errChan: make(chan error),
 		},
 
-		receiveWorkerJobsChan: make(chan *models.TaskDto),
-		sendRegisterInfoChan:  make(chan *models.RegisterMsg),
-		sendErrRelyChan:       make(chan *models.ErrReplyMsg),
+		receiveWorkerTasksChan: make(chan *models.TaskDto),
+		sendTaskRelyChan:       make(chan *models.TaskReplyMsg),
 	}
+
+	workerName := wmq.GenerateWorkerName()
+	wmq.workerName = workerName
+
+	workerIP, err := wmq.GetWorkerIp()
+	if err != nil {
+		return nil, err
+	}
+	wmq.workerId = workerIP
+	wmq.registerTopic = fmt.Sprintf("%s.register_t", wmq.workerName)
+	wmq.tasksTopic = fmt.Sprintf("%s.tasks_t", wmq.workerName)
+	wmq.taskReplyTopic = fmt.Sprintf("%s.task_r_t", wmq.workerName)
 
 	go wmq.startWorker()
 
@@ -53,8 +76,10 @@ func (wq *WorkerMessageService) startWorker() {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
+		wq.SendRegisterMsg(ctx)
+
 		go wq.KeepAlive(ctx)
-		go wq.Receive(ctx, wq.workQueue)
+		go wq.Receive(ctx, wq.taskQueue)
 		go wq.HandleTasks(ctx)
 
 		<-wq.errChan
@@ -63,16 +88,58 @@ func (wq *WorkerMessageService) startWorker() {
 	}
 }
 
+func (wq *WorkerMessageService) GenerateWorkerName() string {
+	name := utils.GetEnvOrIniValue(wq.cfg.Raw, "worker", "name")
+	if name != "" {
+		return name
+	}
+
+	hostname := os.Getenv("hostname")
+	return hostname
+}
+
+func (wq *WorkerMessageService) GetWorkerIp() (string, error) {
+	return utils.GetOutBoundIP()
+}
+
 func (wq *WorkerMessageService) SendRegisterMsg(ctx context.Context) error {
+	ip, err := wq.GetWorkerIp()
+	if err != nil {
+		return err
+	}
+	wq.workerIP = ip
+
+	workerName := wq.GenerateWorkerName()
+	wq.workerName = workerName
+
+	registerMsg := &models.RegisterMsg{
+		Name:       workerName,
+		Ip:         ip,
+		OnlineTime: time.Now(),
+	}
+
+	msg, err := json.Marshal(registerMsg)
+	if err != nil {
+		return err
+	}
+
+	if err := wq.Send(ctx, wq.registerQueue, string(msg)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (wq *WorkerMessageService) SendErrReplyMsg(ctx context.Context) error {
+func (wq *WorkerMessageService) HandleRegisterReply(ctx context.Context) {
+
+}
+
+func (wq *WorkerMessageService) SendTaskReplyMsg(ctx context.Context) error {
 	return nil
 }
 
 func (wq *WorkerMessageService) HandleTasks(ctx context.Context) {
-	for task := range wq.receiveWorkerJobsChan {
+	for task := range wq.receiveWorkerTasksChan {
 		wq.log.Debugf("start processing task[%s]", task.Name)
 		time.Sleep(3 * time.Second)
 	}
@@ -87,7 +154,7 @@ func (wq *WorkerMessageService) Receive(ctx context.Context, queueName string) e
 	for d := range msgs {
 		wq.log.Debugf("receive msg [%s]", string(d.Body))
 
-		commonMsg := &models.ReceiveMsg{}
+		commonMsg := &models.GenericReceiveMsg{}
 		if err := json.Unmarshal(d.Body, commonMsg); err != nil {
 			wq.log.Debugf("Unmarshal receive msg failed, [%s]", err.Error())
 			continue
@@ -100,7 +167,7 @@ func (wq *WorkerMessageService) Receive(ctx context.Context, queueName string) e
 				wq.log.Debugf("Unmarshal receive msg to task info failed, [%s]", err.Error())
 				continue
 			}
-			wq.receiveWorkerJobsChan <- taskMsg
+			wq.receiveWorkerTasksChan <- taskMsg
 
 			d.Ack(false)
 		default:

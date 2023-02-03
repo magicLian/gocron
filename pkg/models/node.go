@@ -12,13 +12,14 @@ const (
 )
 
 type Node struct {
-	Id        string         `json:"id" gorm:"column:id;primary_key;not null;type:varchar(255)"`
-	Name      string         `json:"name"`
-	Ip        string         `json:"ip"`
-	Status    string         `json:"status"`
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"deletedAt"`
+	Id         string         `json:"id" gorm:"column:id;primary_key;not null;type:varchar(255)"`
+	Name       string         `json:"name"`
+	Ip         string         `json:"ip"`
+	Status     string         `json:"status"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	OnlineTime time.Time      `json:"onlineTime"`
+	UpdatedAt  time.Time      `json:"updatedAt"`
+	DeletedAt  gorm.DeletedAt `json:"deletedAt"`
 }
 
 func (n *Node) IsAlive() bool {
@@ -26,12 +27,14 @@ func (n *Node) IsAlive() bool {
 }
 
 type CreateNode struct {
-	Name string `json:"name"`
-	Ip   string `json:"ip"`
+	Name       string    `json:"name"`
+	Ip         string    `json:"ip"`
+	OnlineTime time.Time `json:"onlineTime"`
 }
 
 type UpdateNode struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-	Ip   string `json:"ip"`
+	Id         string    `json:"id"`
+	Name       string    `json:"name"`
+	Ip         string    `json:"ip"`
+	OnlineTime time.Time `json:"onlineTime"`
 }

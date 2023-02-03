@@ -11,6 +11,18 @@ type NetworkAddress struct {
 	Port string
 }
 
+func GetOutBoundIP() (ip string, err error) {
+	conn, err := net.Dial("udp", "8.8.8.8:53")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	fmt.Println(localAddr.String())
+	ip = strings.Split(localAddr.String(), ":")[0]
+	return
+}
+
 // SplitHostPortDefault splits ip address/hostname string by host and port. Defaults used if no match found
 func SplitHostPortDefault(input, defaultHost, defaultPort string) (NetworkAddress, error) {
 	addr := NetworkAddress{
